@@ -9,7 +9,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddApiServices(this IServiceCollection services)
     {
-        //services.AddTransient<ExceptionHandlingMiddleware>();
+        // services.AddTransient<ExceptionHandlingMiddleware>();
 
         services.AddFluentValidationAutoValidation();
         services.AddValidatorsFromAssemblyContaining<Program>();

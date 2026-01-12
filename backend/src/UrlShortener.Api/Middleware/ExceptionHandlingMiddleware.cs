@@ -29,11 +29,18 @@ public sealed class ExceptionHandlingMiddleware
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception");
+
+            var message = context.RequestServices
+                .GetRequiredService<IWebHostEnvironment>()
+                .IsDevelopment()
+                ? ex.Message
+                : "Unexpected error occurred.";
+
             await WriteProblemDetails(
                 context,
                 HttpStatusCode.InternalServerError,
                 ApiErrorCodes.InternalError,
-                "Unexpected error occurred.");
+                message);
         }
     }
 
