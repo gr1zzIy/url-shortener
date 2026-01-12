@@ -8,7 +8,12 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d urlshortener"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   api:
     build:
@@ -17,10 +22,15 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Host=db;Port=5432;Database=urlshortener;Username=postgres;Password=postgres
+      DataProtection__KeyRingPath: /app/keys
     ports:
       - "5000:8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    volumes:
+      - api_keys:/app/keys
 
 volumes:
-  pgdata:
+  postgres_data:
+  api_keys:

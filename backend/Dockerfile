@@ -4,19 +4,16 @@ EXPOSE 8080
 ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-COPY ["src/UrlShortener.Api/UrlShortener.Api.csproj", "src/UrlShortener.Api/"]
-COPY ["src/UrlShortener.Infrastructure/UrlShortener.Infrastructure.csproj", "src/UrlShortener.Infrastructure/"]
-COPY ["src/UrlShortener.Domain/UrlShortener.Domain.csproj", "src/UrlShortener.Domain/"]
-COPY ["src/UrlShortener.Application/UrlShortener.Application.csproj", "src/UrlShortener.Application/"]
-
-RUN dotnet restore "src/UrlShortener.Api/UrlShortener.Api.csproj"
-
+# Копіюємо весь проект
 COPY . .
-WORKDIR "/src/src/UrlShortener.Api"
-RUN dotnet publish "UrlShortener.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+
+# Відновлюємо залежності та будуємо
+RUN dotnet restore "src/UrlShortener.Api/UrlShortener.Api.csproj"
+RUN dotnet build "src/UrlShortener.Api/UrlShortener.Api.csproj" -c Release -o /app/build
+
+RUN dotnet publish "src/UrlShortener.Api/UrlShortener.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
