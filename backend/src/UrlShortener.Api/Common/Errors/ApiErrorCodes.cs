@@ -8,4 +8,5 @@ public class ApiErrorCodes
     public const string Unauthorized = "unauthorized";
     public const string Forbidden = "forbidden";
     public const string InternalError = "internal_error";
+    public const string InvalidCredentials = "invalid_credentials";
 }
