@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using UrlShortener.Infrastructure.Auth;
 using UrlShortener.Domain.Entities;
 
 namespace UrlShortener.Infrastructure.Persistence;
 
-public sealed class AppDbContext : DbContext
+public sealed class AppDbContext : IdentityDbContext<ApplicationUser, Microsoft.AspNetCore.Identity.IdentityRole<Guid>, Guid>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -11,12 +13,18 @@ public sealed class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         var e = modelBuilder.Entity<ShortUrl>();
+
         e.HasKey(x => x.Id);
 
         e.Property(x => x.ShortCode).HasMaxLength(32).IsRequired();
         e.Property(x => x.OriginalUrl).HasMaxLength(2048).IsRequired();
 
         e.HasIndex(x => x.ShortCode).IsUnique();
+        e.HasIndex(x => x.UserId);
+
+        e.Property(x => x.IsActive).HasDefaultValue(true);
     }
 }
