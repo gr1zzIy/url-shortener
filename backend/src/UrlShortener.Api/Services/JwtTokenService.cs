@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using UrlShortener.Api.Common.Auth;
 using UrlShortener.Infrastructure.Auth;
 
 namespace UrlShortener.Api.Services;
@@ -24,7 +25,7 @@ public sealed class JwtTokenService
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
-            new("uid", user.Id.ToString())
+            new(AuthClaims.UserId, user.Id.ToString())
         };
 
         foreach (var role in roles)
