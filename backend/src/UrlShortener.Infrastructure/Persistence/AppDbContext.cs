@@ -19,12 +19,19 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, Microsoft.
 
         e.HasKey(x => x.Id);
 
-        e.Property(x => x.ShortCode).HasMaxLength(32).IsRequired();
-        e.Property(x => x.OriginalUrl).HasMaxLength(2048).IsRequired();
+        e.Property(x => x.UserId).IsRequired();
+
+        e.Property(x => x.ShortCode)
+            .HasMaxLength(32)
+            .IsRequired();
+
+        e.Property(x => x.OriginalUrl)
+            .HasMaxLength(2048)
+            .IsRequired();
+
+        e.Property(x => x.IsActive).HasDefaultValue(true);
 
         e.HasIndex(x => x.ShortCode).IsUnique();
         e.HasIndex(x => x.UserId);
-
-        e.Property(x => x.IsActive).HasDefaultValue(true);
     }
 }

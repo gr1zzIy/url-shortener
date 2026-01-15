@@ -4,7 +4,8 @@ public sealed class ShortUrl
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    public Guid UserId { get; set; }          // FK на ApplicationUser
+    public Guid UserId { get; set; }
+
     public string ShortCode { get; set; } = default!;
     public string OriginalUrl { get; set; } = default!;
 
@@ -16,5 +17,7 @@ public sealed class ShortUrl
     public long Clicks { get; set; }
     public DateTimeOffset? LastAccessedAt { get; set; }
 
-    public DateTimeOffset? DeletedAt { get; set; } // soft delete
+    public DateTimeOffset? DeletedAt { get; set; }
+
+    public bool IsDeleted => DeletedAt.HasValue;
 }
