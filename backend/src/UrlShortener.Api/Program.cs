@@ -97,6 +97,12 @@ builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>("db");
 
+// ShortCode generator
+builder.Services.AddSingleton(new ShortCodeGenerator(length: 8));
+
+builder.Services.AddScoped<ShortUrlService>();
+builder.Services.AddSingleton(new ShortCodeGenerator(8));
+
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
