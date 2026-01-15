@@ -2,5 +2,5 @@
 
 public sealed class NotFoundException : ApiException
 {
-    public NotFoundException(string code, string message) : base(code, message) { }
+    public NotFoundException(string message) : base(ApiErrorCodes.NotFound, message) { }
 }

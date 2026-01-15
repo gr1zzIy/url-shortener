@@ -2,5 +2,5 @@
 
 public sealed class ConflictException : ApiException
 {
-    public ConflictException(string code, string message) : base(code, message) { }
+    public ConflictException(string message) : base(ApiErrorCodes.Conflict, message) { }
 }
