@@ -10,7 +10,7 @@ namespace UrlShortener.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/urls")]
-public sealed class UrlsController : ControllerBase
+public sealed class UrlsController : BaseApiController
 {
     private readonly ShortUrlService _service;
 
