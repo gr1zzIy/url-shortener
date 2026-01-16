@@ -11,30 +11,53 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, Microsoft.
 
     public DbSet<ShortUrl> ShortUrls => Set<ShortUrl>();
 
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        var e = modelBuilder.Entity<ShortUrl>();
+        modelBuilder.Entity<ShortUrl>(e =>
+        {
+            e.HasKey(x => x.Id);
+            
+            e.Property(x => x.UserId)
+                .IsRequired();
+            
+            e.Property(x => x.ShortCode)
+                .HasMaxLength(32)
+                .IsRequired();
+            
+            e.Property(x => x.OriginalUrl)
+                .HasMaxLength(2048)
+                .IsRequired();
+            
+            e.Property(x => x.IsActive)
+                .HasDefaultValue(true);
+            
+            e.HasIndex(x => x.ShortCode)
+                .IsUnique()
+                .HasFilter("\"DeletedAt\" IS NULL");
 
-        e.HasKey(x => x.Id);
+            e.HasIndex(x => x.UserId);
+        });
+        
+        modelBuilder.Entity<RefreshToken>(e =>
+        {
+            e.HasKey(x => x.Id);
+            
+            e.Property(x => x.UserId)
+                .IsRequired();
+            
+            e.Property(x => x.TokenHash)
+                .HasMaxLength(128)
+                .IsRequired();
+            
+            e.HasIndex(x => x.TokenHash)
+                .IsUnique();
+            
+            e.HasIndex(x => x.UserId);
+        });
 
-        e.Property(x => x.UserId).IsRequired();
-
-        e.Property(x => x.ShortCode)
-            .HasMaxLength(32)
-            .IsRequired();
-
-        e.Property(x => x.OriginalUrl)
-            .HasMaxLength(2048)
-            .IsRequired();
-
-        e.Property(x => x.IsActive).HasDefaultValue(true);
-
-        e.HasIndex(x => x.ShortCode)
-            .IsUnique()
-            .HasFilter("\"DeletedAt\" IS NULL");
-
-        e.HasIndex(x => x.UserId);
     }
 }
