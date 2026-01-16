@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using UrlShortener.Api.Common.Policies;
 using UrlShortener.Api.Extensions;
 using UrlShortener.Api.Services;
 using UrlShortener.Infrastructure.Auth;
@@ -98,7 +99,7 @@ builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>("db");
 
 // ShortCode generator
-builder.Services.AddSingleton(new ShortCodeGenerator(length: 8));
+builder.Services.AddSingleton(new ShortCodeGenerator(ShortCodePolicy.DefaultGeneratedLength));
 
 builder.Services.AddScoped<ShortUrlService>();
 builder.Services.AddSingleton(new ShortCodeGenerator(8));

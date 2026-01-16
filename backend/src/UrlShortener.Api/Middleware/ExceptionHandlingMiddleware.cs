@@ -49,6 +49,7 @@ public sealed class ExceptionHandlingMiddleware
         {
             ApiErrorCodes.NotFound => HttpStatusCode.NotFound,
             ApiErrorCodes.Conflict => HttpStatusCode.Conflict,
+            ApiErrorCodes.Expired => HttpStatusCode.Gone,
             _ => HttpStatusCode.BadRequest
         };
 
