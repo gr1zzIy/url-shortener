@@ -11,13 +11,12 @@ public sealed class CreateShortUrlRequestValidator : AbstractValidator<CreateSho
         RuleFor(x => x.OriginalUrl)
             .NotEmpty()
             .MaximumLength(UrlPolicy.MaxOriginalUrlLength)
-            .Must(BeValidAbsoluteUrl)
-            .WithMessage("The OriginalUrl must be a valid absolute URL.");
+            .Must(url => UrlNormalizationPolicy.IsValidHttpUrl(UrlNormalizationPolicy.NormalizeOriginalUrl(url)))
+            .WithMessage("The OriginalUrl must be a valid http/https URL.");
 
         RuleFor(x => x.CustomCode)
-            .MaximumLength(ShortCodePolicy.MaxLength)
-            .Must(code => ShortCodePolicy.AllowedRegex.IsMatch(code!))
-            .WithMessage("CustomCode can only contain letters, numbers, underscores and hyphens.")
+            .Must(code => ShortCodePolicy.IsValid(ShortCodePolicy.Normalize(code!)))
+            .WithMessage($"CustomCode must be alphanumeric and {ShortCodePolicy.MinLength}-{ShortCodePolicy.MaxLength} characters long.")
             .When(x => !string.IsNullOrWhiteSpace(x.CustomCode));
 
         RuleFor(x => x.CustomCode)

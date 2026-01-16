@@ -22,7 +22,11 @@ public sealed class ShortUrlService
 
     public async Task<ShortUrlDto> CreateAsync(Guid userId, CreateShortUrlRequest request, CancellationToken ct)
     {
-        var custom = request.CustomCode?.Trim();
+        var normalizedUrl = UrlNormalizationPolicy.NormalizeOriginalUrl(request.OriginalUrl);
+        
+        var custom = request.CustomCode;
+        if (!string.IsNullOrWhiteSpace(custom))
+            custom = ShortCodePolicy.Normalize(custom);
 
         // CASE 1: customCode provided -> single insert attempt, 23505 => conflict
         if (!string.IsNullOrWhiteSpace(custom))
@@ -30,7 +34,7 @@ public sealed class ShortUrlService
             var entity = new ShortUrl
             {
                 UserId = userId,
-                OriginalUrl = request.OriginalUrl,
+                OriginalUrl = normalizedUrl,
                 ShortCode = custom,
                 ExpiresAt = request.ExpiresAt,
                 IsActive = true
@@ -57,7 +61,7 @@ public sealed class ShortUrlService
             var entity = new ShortUrl
             {
                 UserId = userId,
-                OriginalUrl = request.OriginalUrl,
+                OriginalUrl = normalizedUrl,
                 ShortCode = code,
                 ExpiresAt = request.ExpiresAt,
                 IsActive = true
@@ -83,10 +87,10 @@ public sealed class ShortUrlService
 
     public async Task<PagedResult<ShortUrlDto>> ListAsync(Guid userId, int page, int pageSize, CancellationToken ct)
     {
-        var (p, ps) = PagingPolicy.Normalize(page, pageSize);
-
-        page = p;
-        pageSize = ps;
+        var (pageNorm, pageSizeNorm) = PagingPolicy.Normalize(page, pageSize);
+        
+        page = pageNorm;
+        pageSize = pageSizeNorm;
 
         var q = _db.ShortUrls
             .AsNoTracking()
