@@ -37,6 +37,16 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
+builder.Services.AddCors(opt =>
+{
+    opt.AddPolicy("spa", p =>
+        p.WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials());
+});
+
+
 // Controllers + Swagger (Bearer)
 builder.Services.AddControllers();
 builder.Services.AddSwaggerWithAuth();
@@ -102,7 +112,9 @@ builder.Services.AddHealthChecks()
 builder.Services.AddSingleton(new ShortCodeGenerator(ShortCodePolicy.DefaultGeneratedLength));
 
 builder.Services.AddScoped<ShortUrlService>();
-builder.Services.AddSingleton(new ShortCodeGenerator(8));
+
+// Refresh token
+builder.Services.AddSingleton<RefreshTokenService>();
 
 var app = builder.Build();
 
