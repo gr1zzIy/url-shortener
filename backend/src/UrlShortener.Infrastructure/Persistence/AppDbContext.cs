@@ -31,7 +31,10 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, Microsoft.
 
         e.Property(x => x.IsActive).HasDefaultValue(true);
 
-        e.HasIndex(x => x.ShortCode).IsUnique();
+        e.HasIndex(x => x.ShortCode)
+            .IsUnique()
+            .HasFilter("\"DeletedAt\" IS NULL");
+
         e.HasIndex(x => x.UserId);
     }
 }
