@@ -25,6 +25,7 @@ public sealed class AuthController : BaseApiController
     private readonly AppDbContext _db;
     private readonly RefreshTokenService _refresh;
     private readonly IWebHostEnvironment _env;
+    private readonly IConfiguration _config;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
@@ -32,7 +33,8 @@ public sealed class AuthController : BaseApiController
         JwtTokenService jwt,
         AppDbContext db,
         RefreshTokenService refresh,
-        IWebHostEnvironment env)
+        IWebHostEnvironment env,
+        IConfiguration config)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -41,6 +43,7 @@ public sealed class AuthController : BaseApiController
         _db = db;
         _refresh = refresh;
         _env = env;
+        _config = config;
     }
 
     [HttpPost("register")]
@@ -108,6 +111,50 @@ public sealed class AuthController : BaseApiController
         var (token, expiresMinutes) = _jwt.CreateAccessToken(user, roles);
 
         return Ok(new AuthResponse(token, "Bearer", expiresMinutes * 60));
+    }
+
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult<object>> ForgotPassword(ForgotPasswordRequest request, CancellationToken ct)
+    {
+        var user = await _userManager.FindByEmailAsync(request.Email);
+
+        if (user is null)
+            return Ok(new { message = "If the email exists, a reset link will be sent." });
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+        // For portfolio: return the link in Development to simplify testing.
+        var frontendBase = _config["Frontend:BaseUrl"] ?? "http://localhost:5173";
+        var url = BuildResetUrl(frontendBase, request.Email, token);
+
+        if (_env.IsDevelopment())
+            return Ok(new { message = "Reset link generated.", resetUrl = url });
+
+        // TODO: send email in production.
+        return Ok(new { message = "If the email exists, a reset link will be sent." });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest request, CancellationToken ct)
+    {
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user is null)
+            return Ok(new { message = "Password reset completed." });
+
+        var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+        if (!result.Succeeded)
+            return BadRequest(IdentityProblemDetails.ToValidationProblem(result, HttpContext));
+
+        // Invalidate refresh tokens for safety.
+        await _db.RefreshTokens
+            .Where(x => x.UserId == user.Id && x.RevokedAt == null && x.ExpiresAt > DateTimeOffset.UtcNow)
+            .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.RevokedAt, _ => DateTimeOffset.UtcNow)
+                    .SetProperty(x => x.RevokedByIp, _ => GetIp()),
+                ct);
+
+        ClearRefreshCookie();
+        return Ok(new { message = "Password reset completed." });
     }
 
     [HttpPost("refresh")]
@@ -278,4 +325,13 @@ public sealed class AuthController : BaseApiController
 
     private static bool IsUniqueViolation(DbUpdateException ex)
         => ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
+
+    private static string BuildResetUrl(string baseUrl, string email, string token)
+    {
+        // Token contains +/= chars; must be URL encoded.
+        var frontend = baseUrl.TrimEnd('/');
+        var e = Uri.EscapeDataString(email);
+        var t = Uri.EscapeDataString(token);
+        return $"{frontend}/reset-password?email={e}&token={t}";
+    }
 }
