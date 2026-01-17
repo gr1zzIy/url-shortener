@@ -1,35 +1,39 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import AppShell from "./pages/AppShell";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import DashboardPage from "./pages/DashboardPage";
+import ErrorPage from "./pages/ErrorPage";
+import NotFoundPage from "./pages/NotFoundPage";
+import { ProtectedRoute } from "./routes/ProtectedRoute";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
-function App() {
-  const [count, setCount] = useState(0)
+const router = createBrowserRouter([
+    // Public
+    { path: "/login", element: <LoginPage />, errorElement: <ErrorPage /> },
+    { path: "/register", element: <RegisterPage />, errorElement: <ErrorPage /> },
+    { path: "/forgot-password", element: <ForgotPasswordPage />, errorElement: <ErrorPage /> },
+    { path: "/reset-password", element: <ResetPasswordPage />, errorElement: <ErrorPage /> },
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    // Dedicated error route (for API failures you catch and redirect)
+    { path: "/error", element: <ErrorPage /> },
+
+    // App shell
+    {
+        path: "/",
+        element: <AppShell />,
+        errorElement: <ErrorPage />,
+        children: [
+            { index: true, element: <ProtectedRoute><DashboardPage /></ProtectedRoute> },
+            { path: "dashboard", element: <ProtectedRoute><DashboardPage /></ProtectedRoute> },
+        ],
+    },
+
+    // 404
+    { path: "*", element: <NotFoundPage /> },
+]);
+
+export default function App() {
+    return <RouterProvider router={router} />;
 }
-
-export default App
