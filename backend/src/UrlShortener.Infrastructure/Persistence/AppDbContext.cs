@@ -11,6 +11,8 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, Microsoft.
 
     public DbSet<ShortUrl> ShortUrls => Set<ShortUrl>();
 
+    public DbSet<ClickEvent> ClickEvents => Set<ClickEvent>();
+
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -57,6 +59,40 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, Microsoft.
                 .IsUnique();
             
             e.HasIndex(x => x.UserId);
+        });
+
+        modelBuilder.Entity<ClickEvent>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.ShortUrlId)
+                .IsRequired();
+
+            e.Property(x => x.VisitorHash)
+                .HasMaxLength(64)
+                .IsRequired();
+
+            e.Property(x => x.IpAddress)
+                .HasMaxLength(64);
+
+            e.Property(x => x.UserAgent)
+                .HasMaxLength(512);
+
+            e.Property(x => x.DeviceType)
+                .HasMaxLength(32);
+
+            e.Property(x => x.Os)
+                .HasMaxLength(64);
+
+            e.Property(x => x.Browser)
+                .HasMaxLength(64);
+
+            e.Property(x => x.CountryCode)
+                .HasMaxLength(2);
+
+            e.HasIndex(x => x.ShortUrlId);
+            e.HasIndex(x => new { x.ShortUrlId, x.OccurredAt });
+            e.HasIndex(x => new { x.ShortUrlId, x.VisitorHash });
         });
 
     }

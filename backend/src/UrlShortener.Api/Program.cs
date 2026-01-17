@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,7 @@ using UrlShortener.Api.Extensions;
 using UrlShortener.Api.Services;
 using UrlShortener.Infrastructure.Auth;
 using UrlShortener.Infrastructure.Persistence;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +48,15 @@ builder.Services.AddCors(opt =>
             .AllowCredentials());
 });
 
+// Correct client IP / scheme behind proxies (Render / Nginx / etc.)
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // If you control proxies, you can restrict KnownNetworks/KnownProxies.
+    o.KnownNetworks.Clear();
+    o.KnownProxies.Clear();
+});
+
 
 // Controllers + Swagger (Bearer)
 builder.Services.AddControllers();
@@ -72,7 +83,8 @@ builder.Services
     })
     .AddRoles<IdentityRole<Guid>>()
     .AddEntityFrameworkStores<AppDbContext>()
-    .AddSignInManager();
+    .AddSignInManager()
+    .AddDefaultTokenProviders();
 
 // JWT
 var jwt = builder.Configuration.GetSection("Jwt");
@@ -113,10 +125,23 @@ builder.Services.AddSingleton(new ShortCodeGenerator(ShortCodePolicy.DefaultGene
 
 builder.Services.AddScoped<ShortUrlService>();
 
+// Click analytics
+builder.Services.Configure<AnalyticsOptions>(builder.Configuration.GetSection("Analytics"));
+builder.Services.AddSingleton<ClickEnrichmentService>();
+builder.Services.AddScoped<AnalyticsService>();
+
 // Refresh token
 builder.Services.AddSingleton<RefreshTokenService>();
 
 var app = builder.Build();
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+        KnownNetworks = { },
+        KnownProxies = { }
+        
+    });
 
 app.UseSerilogRequestLogging();
 app.UseApiPipeline(app.Environment);
