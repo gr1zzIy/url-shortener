@@ -1,21 +1,65 @@
-# .NET
+# =========================
+# .NET / Visual Studio
+# =========================
 bin/
 obj/
+.vs/
 *.user
 *.suo
-*.cache
-*.log
+*.userosscache
+*.sln.docstates
 
-# Rider / VSCode
+# Rider / JetBrains / VS Code
 .idea/
 .vscode/
 
-# Node
+# NuGet / build artifacts
+*.nupkg
+*.snupkg
+artifacts/
+TestResults/
+
+# =========================
+# Node / Frontend
+# =========================
 node_modules/
 dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Vite / tooling caches
+.vite/
+.vitest/
+.eslintcache
+.cache/
+.parcel-cache/
+
+# Playwright / Cypress (if added later)
+playwright-report/
+test-results/
+cypress/videos/
+cypress/screenshots/
+
+# =========================
+# Environment / secrets
+# =========================
 .env
 .env.*
+!.env.example
 
+# optional local overrides
+*.local
+*.secret
+
+# =========================
+# Logs (runtime)
+# =========================
+logs/
+*.log
+
+# =========================
 # OS
+# =========================
 .DS_Store
 Thumbs.db
