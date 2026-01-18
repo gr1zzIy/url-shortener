@@ -1,15 +1,30 @@
-# URL Shortener (GlassLink)
+# GlassLink — URL Shortener with Analytics
 
-Pet project: modern URL shortener with analytics and clean UX, built to demonstrate
-production-style architecture, authentication, and data tracking.
+GlassLink is a project that demonstrates URL shortening service with authentication, analytics, and a glass-morphism UI.
 
-## Tech stack
+The project focuses on **clean architecture**, **patterns**, and
+**end-to-end ownership**: from database schema and backend services to UI/UX and CI.
+
+---
+
+## What GlassLink Can Be Used For
+
+- Creating short links for sharing
+- Tracking link usage over time
+- Analyzing user behavior (countries, devices, browsers, OS)
+- Demonstrating authentication flows (login, register, password recovery)
+- Showcasing a full-stack architecture
+
+---
+
+## Tech Stack
 
 ### Backend
 - .NET 9 (ASP.NET Core Web API)
 - Entity Framework Core
 - PostgreSQL
 - ASP.NET Identity + JWT
+- Serilog
 - Docker / Docker Compose
 
 ### Frontend
@@ -18,53 +33,117 @@ production-style architecture, authentication, and data tracking.
 - Tailwind CSS
 - shadcn/ui (glass-style components)
 - Framer Motion
-- Recharts (analytics)
+- Recharts
 
-## What this project is about
+### Dev & Infrastructure
+- GitHub Actions (CI)
+- Dockerized local environment
+- Monorepo structure
 
-- Create and manage short links
-- Track clicks and unique visitors
-- Analytics by time, device, browser, OS, country
-- Authentication (register / login / reset password)
-- Focus on clean architecture and production-ready patterns
+---
 
-This is a **portfolio pet project**, not a commercial service.
+## Authentication & User Flow
 
-## Run locally (Docker)
+**Implemented flows:**
+- User registration
+- Login / Logout
+- Password recovery
+- JWT-protected routes
 
-Start everything (API + database):
+### **Screenshots**
+- `docs/screenshots/auth-login.png`
+- `docs/screenshots/auth-register.png`
+- `docs/screenshots/auth-forgot-password.png`
+
+---
+
+## URL Management
+
+**Features:**
+- Create short URLs
+- Activate / deactivate links
+- Delete with confirmation
+- Expiration handling
+- Click counters
+
+### **Screenshot**
+- `docs/screenshots/dashboard-links.png`
+
+---
+
+## Analytics & Statistics
+
+**Each link includes:**
+- Total clicks
+- Unique visitors
+- Clicks over time (chart)
+- Country / Device / browser / OS breakdown
+- Recent clicks list
+
+### **Screenshots**
+- `docs/screenshots/analytics-overview.png`
+- `docs/screenshots/analytics-recent-clicks.png`
+
+---
+
+## UI & UX
+
+- Glass-morphism design
+- Smooth animations
+- Responsive layout
+- Theme presets
+
+### **Screenshots**
+- `docs/screenshots/theme-light.png`
+- `docs/screenshots/theme-balanced.png`
+- `docs/screenshots/theme-dark.png`
+
+---
+
+### **Other screenshots**
+
+**Modals:**
+- `docs/screenshots/deactivate-modal.png`
+- `docs/screenshots/delete-modal.png`
+- `docs/screenshots/error-page.png`
+- `docs/screenshots/search.png`
+
+---
+
+## Run Locally (Docker)
 
 ```bash
 docker compose up -d --build
 ```
 
-API endpoints:
-- Health: http://localhost:5000/health
-- API base: http://localhost:5000/api
-- Swagger: http://localhost:5000/swagger/index.html
-- 
-## Run API locally (without Docker for API)
+API:
+- http://localhost:5000/health
+- http://localhost:5000/api
 
-Start only PostgreSQL:
+---
 
-```bash
-docker compose up -d db
-```
-
-Run backend manually:
+## Run Frontend
 
 ```bash
-dotnet run --project backend/src/UrlShortener.Api/UrlShortener.Api.csproj
-```
-
-## Run Frontend locally
-
-From the `frontend` folder:
-
-```bash
+cd frontend
 npm ci
 npm run dev
 ```
 
-Default Vite dev URL:
+Frontend:
 - http://localhost:5173
+
+---
+
+## Planned Improvements
+
+- OAuth login
+- Public analytics pages
+- Rate limiting
+- Admin dashboard
+- E2E tests
+
+---
+
+### Author: Oleksii Ishchenko
+
