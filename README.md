@@ -28,12 +28,10 @@ The project focuses on **clean architecture**, **patterns**, and
 - Docker / Docker Compose
 
 ### Frontend
-- React + TypeScript
-- Vite
-- Tailwind CSS
-- shadcn/ui (glass-style components)
-- Framer Motion
-- Recharts
+- Vanilla HTML + CSS + JavaScript
+- Static assets (no Vite)
+- Lightweight custom components
+- English/Ukrainian language switch with persisted preference
 
 ### Dev & Infrastructure
 - GitHub Actions (CI)
@@ -147,12 +145,12 @@ API:
 
 ```bash
 cd frontend
-npm ci
 npm run dev
 ```
 
 Frontend:
 - http://localhost:5173
+- Details: `frontend/README.md`
 
 ---
 

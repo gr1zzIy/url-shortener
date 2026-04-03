@@ -11,22 +11,23 @@ using UrlShortener.Api.Extensions;
 using UrlShortener.Api.Services;
 using UrlShortener.Infrastructure.Auth;
 using UrlShortener.Infrastructure.Persistence;
-using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
 #region Для контейнера Docker
 
+var runningInContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
+
 // Конфігурація для контейнера
-if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
+if (runningInContainer)
 {
     builder.Configuration.AddJsonFile("appsettings.Container.json", optional: true);
 }
 
-// Налаштування DataProtection для контейнера
+// Налаштування DataProtection: контейнер використовує /app/keys, локально — user-writable path
+var keyRingPath = GetDataProtectionKeyRingPath(builder.Configuration, runningInContainer);
 builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(
-        builder.Configuration["DataProtection:KeyRingPath"] ?? "/app/keys"));
+    .PersistKeysToFileSystem(new DirectoryInfo(keyRingPath));
 
 #endregion
 
@@ -155,7 +156,7 @@ app.MapControllers();
 
 if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true") 
 {
-    using var scope = app.Services.CreateScope();
+        using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
@@ -191,3 +192,17 @@ if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
 #endregion
 
 app.Run();
+
+static string GetDataProtectionKeyRingPath(IConfiguration configuration, bool runningInContainer)
+{
+    var configured = configuration["DataProtection:KeyRingPath"];
+    if (!string.IsNullOrWhiteSpace(configured))
+        return configured;
+
+    if (runningInContainer)
+        return "/app/keys";
+
+    var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+    return Path.Combine(localAppData, "UrlShortener", "DataProtectionKeys");
+}
+
