@@ -22,13 +22,15 @@ public sealed class ShortUrlService
 
     public async Task<ShortUrlDto> CreateAsync(Guid userId, CreateShortUrlRequest request, CancellationToken ct)
     {
+        // На вході завжди нормалізуємо URL, щоб уникати дублів через формат.
         var normalizedUrl = UrlNormalizationPolicy.NormalizeOriginalUrl(request.OriginalUrl);
         
         var custom = request.CustomCode;
         if (!string.IsNullOrWhiteSpace(custom))
             custom = ShortCodePolicy.Normalize(custom);
 
-        // CASE 1: customCode provided -> single insert attempt, 23505 => conflict
+        // Якщо користувач задав свій код, робимо одну спробу вставки.
+        // Конфлікт унікальності тут — очікуваний бізнес-сценарій, а не технічна помилка.
         if (!string.IsNullOrWhiteSpace(custom))
         {
             var entity = new ShortUrl
@@ -53,7 +55,7 @@ public sealed class ShortUrlService
             }
         }
 
-        // CASE 2: generated code -> retry loop, 23505 => retry
+        // Для автогенерації коду допускаємо кілька спроб, бо колізії хоч і рідкі, але можливі.
         for (int attempt = 0; attempt < ShortCodePolicy.GenerationMaxAttempts; attempt++)
         {
             var code = _codes.Generate();
@@ -76,7 +78,7 @@ public sealed class ShortUrlService
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {
-                // Collision on unique index for ShortCode — retry with a new code.
+                // Чистимо трекер, інакше невдала сутність залишиться "завислою" між спробами.
                 _db.ChangeTracker.Clear();
                 continue;
             }
@@ -87,6 +89,7 @@ public sealed class ShortUrlService
 
     public async Task<PagedResult<ShortUrlDto>> ListAsync(Guid userId, int page, int pageSize, CancellationToken ct)
     {
+        // Нормалізація тут захищає і API, і БД від випадкових дуже великих page/pageSize.
         var (pageNorm, pageSizeNorm) = PagingPolicy.Normalize(page, pageSize);
         
         page = pageNorm;
@@ -153,7 +156,7 @@ public sealed class ShortUrlService
     
     private static bool IsUniqueViolation(DbUpdateException ex)
     {
-        // Postgres unique violation SQLSTATE is 23505
+        // Для PostgreSQL код 23505 означає порушення унікального індексу.
         return ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
     }
 }

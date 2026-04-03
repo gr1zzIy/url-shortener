@@ -22,11 +22,13 @@ public sealed class ExceptionHandlingMiddleware
         }
         catch (ApiException ex)
         {
+            // Керовані бізнес-помилки віддаємо як передбачуваний ProblemDetails.
             _logger.LogWarning(ex, "API exception: {Code}", ex.Code);
             await WriteProblemDetails(context, MapStatus(ex), ex.Code, ex.Message);
         }
         catch (Exception ex)
         {
+            // Некеровані помилки приховуємо в non-dev, щоб не витікали внутрішні деталі.
             _logger.LogError(ex, "Unhandled exception");
 
             var message = context.RequestServices
@@ -44,6 +46,7 @@ public sealed class ExceptionHandlingMiddleware
     }
 
     private static HttpStatusCode MapStatus(ApiException ex) =>
+        // Централізована мапа статусів тримає єдину поведінку для всього API.
         ex.Code switch
         {
             ApiErrorCodes.NotFound => HttpStatusCode.NotFound,

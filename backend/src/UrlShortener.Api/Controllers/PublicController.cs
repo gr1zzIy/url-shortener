@@ -13,6 +13,14 @@ public sealed class PublicController : ControllerBase
     private readonly AppDbContext _db;
     public PublicController(AppDbContext db) => _db = db;
 
+    /// <summary>
+    /// Повертає публічну інформацію про коротке посилання без редіректу.
+    /// </summary>
+    /// <param name="shortCode">Короткий код посилання.</param>
+    /// <param name="ct">Токен скасування запиту.</param>
+    /// <response code="200">Інформацію про посилання знайдено.</response>
+    /// <response code="404">Посилання не знайдено або неактивне.</response>
+    /// <response code="410">Посилання прострочене.</response>
     [HttpGet("resolve/{shortCode}")]
     public async Task<IActionResult> Resolve(string shortCode, CancellationToken ct)
     {

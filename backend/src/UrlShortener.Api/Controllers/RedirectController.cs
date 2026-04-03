@@ -23,9 +23,18 @@ public sealed class RedirectController : ControllerBase
         _options = options.Value;
     }
 
+    /// <summary>
+    /// Редіректить за коротким кодом на оригінальну URL-адресу.
+    /// </summary>
+    /// <param name="shortCode">Короткий код посилання.</param>
+    /// <param name="ct">Токен скасування запиту.</param>
+    /// <response code="302">Редірект на оригінальну адресу.</response>
+    /// <response code="404">Посилання не знайдено або неактивне.</response>
+    /// <response code="410">Посилання прострочене.</response>
     [HttpGet("{shortCode}")]
     public async Task<IActionResult> RedirectByCode([FromRoute] string shortCode, CancellationToken ct)
     {
+        // Нормалізуємо код один раз на вході, щоб далі працювати з єдиним форматом.
         shortCode = ShortCodePolicy.Normalize(shortCode);
 
         if (ShortCodePolicy.IsReserved(shortCode) || !ShortCodePolicy.IsValid(shortCode))
@@ -51,6 +60,7 @@ public sealed class RedirectController : ControllerBase
         if (row.ExpiresAt is not null && row.ExpiresAt <= now)
             return GoneResponse(shortCode, ErrorMessages.ShortUrlHasExpired, row.ExpiresAt);
 
+        // countThisHit впливає лише на лічильник кліків, редірект усе одно виконуємо.
         var countThisHit = true;
 
         if (_options.StoreClickEvents)
@@ -69,6 +79,7 @@ public sealed class RedirectController : ControllerBase
                 var country = _enrichment.TryGetCountryCode(Request.Headers);
                 var visitorHash = _enrichment.ComputeVisitorHash(ip, ua);
 
+                // В межах короткого вікна не рахуємо повторний клік тим самим visitorHash.
                 var cutoff = now.AddMinutes(-10);
 
                 var alreadyCounted = await _db.ClickEvents
@@ -154,6 +165,7 @@ public sealed class RedirectController : ControllerBase
 
     private IActionResult RespondWithHtmlOrThrow(string html, Exception exception)
     {
+        // Для браузера віддаємо HTML-сторінку, для API лишаємо єдиний JSON-формат через middleware.
         if (WantsHtml())
             return Content(html, "text/html; charset=utf-8");
 

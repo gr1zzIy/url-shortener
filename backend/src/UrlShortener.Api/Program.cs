@@ -152,14 +152,40 @@ builder.Services.AddScoped<AnalyticsService>();
 builder.Services.AddSingleton<RefreshTokenService>();
 
 var app = builder.Build();
+var isDocsRedirectEnv = app.Environment.IsDevelopment() || app.Environment.IsStaging();
 
 app.UseForwardedHeaders();
 
 app.UseSerilogRequestLogging();
 app.UseApiPipeline(app.Environment);
 
-app.MapGet("/", () => Results.Ok(new { service = "UrlShortener API", status = "ok", health = "/health" }));
+app.MapGet("/", () =>
+    isDocsRedirectEnv
+        ? Results.Redirect("/swagger/index.html")
+        : Results.Ok(new { service = "UrlShortener API", status = "ok", health = "/health" }))
+    .WithSummary("Кореневий endpoint API")
+    .WithDescription("У Development і Staging автоматично переадресовує на Swagger UI, в інших середовищах повертає короткий статус сервісу.");
+
 app.MapHealthChecks("/health");
+app.MapHealthChecks("/ready");
+
+app.MapGet("/info", () => Results.Ok(new
+    {
+        service = "UrlShortener API",
+        environment = app.Environment.EnvironmentName,
+        utc = DateTimeOffset.UtcNow
+    }))
+    .WithSummary("Повертає службову інформацію про API")
+    .WithDescription("Зручний endpoint для швидкої перевірки середовища запуску і часу сервера.");
+
+app.MapGet("/version", () => Results.Ok(new
+    {
+        service = "UrlShortener API",
+        version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown"
+    }))
+    .WithSummary("Повертає версію API")
+    .WithDescription("Зручний endpoint для демо, релізів і швидкої перевірки версії застосунку.");
+
 app.MapControllers();
 
 #region Для контейнера Docker

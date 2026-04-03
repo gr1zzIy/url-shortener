@@ -21,6 +21,12 @@ public sealed class UrlsController : BaseApiController
         _analytics = analytics;
     }
 
+    /// <summary>
+    /// Створює нове коротке посилання для поточного користувача.
+    /// </summary>
+    /// <param name="request">Параметри для створення короткого посилання.</param>
+    /// <param name="ct">Токен скасування запиту.</param>
+    /// <response code="201">Коротке посилання успішно створено.</response>
     [HttpPost]
     public async Task<ActionResult<ShortUrlDto>> Create(CreateShortUrlRequest request, CancellationToken ct)
     {
@@ -29,6 +35,12 @@ public sealed class UrlsController : BaseApiController
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
+    /// <summary>
+    /// Повертає пагінований список коротких посилань поточного користувача.
+    /// </summary>
+    /// <param name="page">Номер сторінки.</param>
+    /// <param name="pageSize">Розмір сторінки.</param>
+    /// <param name="ct">Токен скасування запиту.</param>
     [HttpGet]
     public async Task<ActionResult<PagedResult<ShortUrlDto>>> List([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
     {
@@ -37,6 +49,11 @@ public sealed class UrlsController : BaseApiController
         return Ok(result);
     }
 
+    /// <summary>
+    /// Повертає коротке посилання за ідентифікатором.
+    /// </summary>
+    /// <param name="id">Ідентифікатор короткого посилання.</param>
+    /// <param name="ct">Токен скасування запиту.</param>
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ShortUrlDto>> GetById(Guid id, CancellationToken ct)
     {
@@ -44,6 +61,12 @@ public sealed class UrlsController : BaseApiController
         return Ok(await _service.GetAsync(userId, id, ct));
     }
 
+    /// <summary>
+    /// Деактивує коротке посилання.
+    /// </summary>
+    /// <param name="id">Ідентифікатор короткого посилання.</param>
+    /// <param name="ct">Токен скасування запиту.</param>
+    /// <response code="204">Посилання деактивовано.</response>
     [HttpPost("{id:guid}/deactivate")]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken ct)
     {
@@ -52,6 +75,12 @@ public sealed class UrlsController : BaseApiController
         return NoContent();
     }
 
+    /// <summary>
+    /// М'яко видаляє коротке посилання.
+    /// </summary>
+    /// <param name="id">Ідентифікатор короткого посилання.</param>
+    /// <param name="ct">Токен скасування запиту.</param>
+    /// <response code="204">Посилання позначено як видалене.</response>
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
@@ -60,6 +89,13 @@ public sealed class UrlsController : BaseApiController
         return NoContent();
     }
 
+    /// <summary>
+    /// Повертає статистику переходів за період.
+    /// </summary>
+    /// <param name="id">Ідентифікатор короткого посилання.</param>
+    /// <param name="from">Початок періоду (включно).</param>
+    /// <param name="to">Кінець періоду (включно).</param>
+    /// <param name="ct">Токен скасування запиту.</param>
     [HttpGet("{id:guid}/stats")]
     public async Task<ActionResult<UrlStatsResponse>> Stats(
         Guid id,
@@ -77,6 +113,13 @@ public sealed class UrlsController : BaseApiController
         return Ok(await _analytics.GetStatsAsync(userId, id, fromEff, toEff, ct));
     }
 
+    /// <summary>
+    /// Повертає деталізацію переходів за країнами, пристроями, браузерами та ОС.
+    /// </summary>
+    /// <param name="id">Ідентифікатор короткого посилання.</param>
+    /// <param name="from">Початок періоду (включно).</param>
+    /// <param name="to">Кінець періоду (включно).</param>
+    /// <param name="ct">Токен скасування запиту.</param>
     [HttpGet("{id:guid}/breakdown")]
     public async Task<ActionResult<UrlBreakdownResponse>> Breakdown(
         Guid id,
@@ -92,6 +135,12 @@ public sealed class UrlsController : BaseApiController
         return Ok(await _analytics.GetBreakdownAsync(userId, id, fromEff, toEff, ct));
     }
 
+    /// <summary>
+    /// Повертає останні зафіксовані переходи за коротким посиланням.
+    /// </summary>
+    /// <param name="id">Ідентифікатор короткого посилання.</param>
+    /// <param name="take">Кількість останніх подій.</param>
+    /// <param name="ct">Токен скасування запиту.</param>
     [HttpGet("{id:guid}/clicks")]
     public async Task<ActionResult<IReadOnlyList<ClickEventDto>>> RecentClicks(
         Guid id,

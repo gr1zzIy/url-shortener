@@ -37,6 +37,7 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, Microsoft.
             e.Property(x => x.IsActive)
                 .HasDefaultValue(true);
             
+            // Унікальність коду тільки для "живих" записів (soft-deleted не блокують повторне використання).
             e.HasIndex(x => x.ShortCode)
                 .IsUnique()
                 .HasFilter("\"DeletedAt\" IS NULL");
@@ -55,6 +56,7 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, Microsoft.
                 .HasMaxLength(128)
                 .IsRequired();
             
+            // Хеш токена має бути унікальним, щоб безпечно працювала ротація.
             e.HasIndex(x => x.TokenHash)
                 .IsUnique();
             
@@ -90,6 +92,7 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, Microsoft.
             e.Property(x => x.CountryCode)
                 .HasMaxLength(2);
 
+            // Індекси нижче потрібні для швидких аналітичних зрізів і дедуплікації кліків.
             e.HasIndex(x => x.ShortUrlId);
             e.HasIndex(x => new { x.ShortUrlId, x.OccurredAt });
             e.HasIndex(x => new { x.ShortUrlId, x.VisitorHash });

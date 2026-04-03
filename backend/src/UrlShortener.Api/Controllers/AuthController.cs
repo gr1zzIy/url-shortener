@@ -52,6 +52,14 @@ public sealed class AuthController : BaseApiController
         _config = config;
     }
 
+    /// <summary>
+    /// Реєструє нового користувача та повертає access token.
+    /// </summary>
+    /// <param name="request">Дані для реєстрації користувача.</param>
+    /// <param name="ct">Токен скасування запиту.</param>
+    /// <response code="200">Користувача успішно створено.</response>
+    /// <response code="400">Помилка валідації даних.</response>
+    /// <response code="409">Користувач з таким email вже існує.</response>
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request, CancellationToken ct)
     {
@@ -80,6 +88,13 @@ public sealed class AuthController : BaseApiController
         return Ok(new AuthResponse(token, "Bearer", expiresMinutes * 60));
     }
 
+    /// <summary>
+    /// Виконує вхід користувача за email і паролем.
+    /// </summary>
+    /// <param name="request">Облікові дані користувача.</param>
+    /// <param name="ct">Токен скасування запиту.</param>
+    /// <response code="200">Успішна автентифікація.</response>
+    /// <response code="401">Неправильний email або пароль.</response>
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request, CancellationToken ct)
     {
@@ -99,6 +114,12 @@ public sealed class AuthController : BaseApiController
         return Ok(new AuthResponse(token, "Bearer", expiresMinutes * 60));
     }
 
+    /// <summary>
+    /// Ініціює скидання пароля.
+    /// </summary>
+    /// <param name="request">Email користувача для скидання пароля.</param>
+    /// <param name="ct">Токен скасування запиту.</param>
+    /// <response code="200">Запит прийнято; у development може повертатись reset URL.</response>
     [HttpPost("forgot-password")]
     public async Task<ActionResult<object>> ForgotPassword(ForgotPasswordRequest request, CancellationToken ct)
     {
@@ -119,6 +140,13 @@ public sealed class AuthController : BaseApiController
         return Ok(new { message = "If the email exists, a reset link will be sent." });
     }
 
+    /// <summary>
+    /// Завершує скидання пароля за токеном.
+    /// </summary>
+    /// <param name="request">Email, токен та новий пароль.</param>
+    /// <param name="ct">Токен скасування запиту.</param>
+    /// <response code="200">Пароль успішно змінено.</response>
+    /// <response code="400">Токен або новий пароль невалідні.</response>
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword(ResetPasswordRequest request, CancellationToken ct)
     {
@@ -148,9 +176,16 @@ public sealed class AuthController : BaseApiController
         return Ok(new { message = "Password reset completed." });
     }
 
+    /// <summary>
+    /// Оновлює access token за активним refresh token у cookie.
+    /// </summary>
+    /// <param name="ct">Токен скасування запиту.</param>
+    /// <response code="200">Новий access token успішно видано.</response>
+    /// <response code="401">Refresh token відсутній або невалідний.</response>
     [HttpPost("refresh")]
     public async Task<ActionResult<AuthResponse>> Refresh(CancellationToken ct)
     {
+        // Refresh token живе тільки в cookie — це зменшує ризик витоку в JS-клієнті.
         var token = Request.Cookies[AuthCookiePolicy.RefreshCookieName];
         if (string.IsNullOrWhiteSpace(token))
             return UnauthorizedRefresh("Missing refresh token.");
@@ -163,7 +198,7 @@ public sealed class AuthController : BaseApiController
         if (existing is null || !existing.IsActive)
             return UnauthorizedRefresh("Invalid refresh token.");
 
-        // Ротуємо refresh token.
+        // Ротація: старий токен відкликаємо, новий видаємо в межах того ж запиту.
         existing.RevokedAt = DateTimeOffset.UtcNow;
         existing.RevokedByIp = GetIp();
 
@@ -195,6 +230,11 @@ public sealed class AuthController : BaseApiController
         return Ok(new AuthResponse(access, "Bearer", expiresMinutes * 60));
     }
 
+    /// <summary>
+    /// Виконує вихід користувача та відкликає refresh token.
+    /// </summary>
+    /// <param name="ct">Токен скасування запиту.</param>
+    /// <response code="204">Вихід успішно виконано.</response>
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken ct)
     {
@@ -216,6 +256,11 @@ public sealed class AuthController : BaseApiController
         return NoContent();
     }
 
+    /// <summary>
+    /// Повертає дані поточного авторизованого користувача.
+    /// </summary>
+    /// <response code="200">Інформацію про користувача повернуто.</response>
+    /// <response code="401">Користувач не авторизований.</response>
     [Authorize]
     [HttpGet("me")]
     public async Task<ActionResult<object>> Me()
@@ -243,6 +288,7 @@ public sealed class AuthController : BaseApiController
 
     private void SetRefreshCookie(string refreshToken, DateTimeOffset expiresAt)
     {
+        // В одному місці формуємо cookie-політику, щоб не роз'їжджалась між endpoint-ами.
         var options = AuthCookiePolicy.BuildRefreshCookieOptions(expiresAt, _env.EnvironmentName == Environments.Development);
         Response.Cookies.Append(AuthCookiePolicy.RefreshCookieName, refreshToken, options);
     }
@@ -256,6 +302,7 @@ public sealed class AuthController : BaseApiController
 
     private async Task IssueRefreshTokenAsync(ApplicationUser user, CancellationToken ct)
     {
+        // Первинну видачу токена ізолюємо в окремий метод, бо його викликаємо і при register, і при login.
         var token = _refresh.GenerateToken();
         var hash = _refresh.HashToken(token);
 
