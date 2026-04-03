@@ -6,12 +6,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
-using UrlShortener.Api.Common.Policies;
 using UrlShortener.Api.Extensions;
 using UrlShortener.Api.Services;
 using UrlShortener.Infrastructure.Auth;
 using UrlShortener.Infrastructure.Persistence;
-using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,20 +37,28 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
+var allowedCorsOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+
 builder.Services.AddCors(opt =>
 {
-    opt.AddPolicy("spa", p =>
-        p.WithOrigins("http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials());
+    opt.AddPolicy("client", p =>
+    {
+        if (allowedCorsOrigins.Length > 0)
+        {
+            p.WithOrigins(allowedCorsOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        }
+    });
 });
 
 // Correct client IP / scheme behind proxies (Render / Nginx / etc.)
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
     o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    // If you control proxies, you can restrict KnownNetworks/KnownProxies.
     o.KnownNetworks.Clear();
     o.KnownProxies.Clear();
 });
@@ -121,7 +127,7 @@ builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>("db");
 
 // ShortCode generator
-builder.Services.AddSingleton(new ShortCodeGenerator(ShortCodePolicy.DefaultGeneratedLength));
+builder.Services.AddSingleton(_ => new ShortCodeGenerator());
 
 builder.Services.AddScoped<ShortUrlService>();
 
@@ -135,13 +141,7 @@ builder.Services.AddSingleton<RefreshTokenService>();
 
 var app = builder.Build();
 
-app.UseForwardedHeaders(new ForwardedHeadersOptions
-    {
-        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-        KnownNetworks = { },
-        KnownProxies = { }
-        
-    });
+app.UseForwardedHeaders();
 
 app.UseSerilogRequestLogging();
 app.UseApiPipeline(app.Environment);
@@ -153,7 +153,7 @@ app.MapControllers();
 
 // Автоматичні міграції ТІЛЬКИ в контейнері
 
-if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true") 
+if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
 {
     using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -174,16 +174,15 @@ if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
             last = null;
             break;
         }
-        catch (Npgsql.NpgsqlException ex) when (i < maxRetries - 1) 
+        catch (Npgsql.NpgsqlException ex) when (i < maxRetries - 1)
         {
             last = ex;
             logger.LogWarning("Database not ready yet ({Attempt}/{Max}): {Message}", i + 1, maxRetries, ex.Message);
-            await Task.Delay(2000); 
+            await Task.Delay(2000);
         }
-            
     }
-    
-    if (last != null) 
+
+    if (last != null)
         throw new InvalidOperationException("Database migrations failed after retries.", last);
 }
 

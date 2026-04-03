@@ -1,7 +1,15 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Npgsql;
 using UrlShortener.Api.Common.Errors;
 using UrlShortener.Api.Common.Policies;
@@ -75,7 +83,7 @@ public sealed class AuthController : BaseApiController
                 pd.Extensions["code"] = ApiErrorCodes.Conflict;
                 pd.Extensions["traceId"] = HttpContext.TraceIdentifier;
 
-                // Щоб фронту було зручно:
+                // Return grouped validation details for easier client-side handling.
                 pd.Extensions["errors"] = result.Errors
                     .GroupBy(e => e.Code)
                     .ToDictionary(g => g.Key, g => g.Select(x => x.Description).ToArray());
@@ -123,11 +131,11 @@ public sealed class AuthController : BaseApiController
 
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-        // For portfolio: return the link in Development to simplify testing.
-        var frontendBase = _config["Frontend:BaseUrl"] ?? "http://localhost:5173";
-        var url = BuildResetUrl(frontendBase, request.Email, token);
+        // Return the reset link in Development to simplify testing.
+        var clientBaseUrl = _config["Client:BaseUrl"] ?? "http://localhost:5000";
+        var url = BuildResetUrl(clientBaseUrl, request.Email, token);
 
-        if (_env.IsDevelopment())
+        if (_env.EnvironmentName == Environments.Development)
             return Ok(new { message = "Reset link generated.", resetUrl = url });
 
         // TODO: send email in production.
@@ -272,13 +280,13 @@ public sealed class AuthController : BaseApiController
 
     private void SetRefreshCookie(string refreshToken, DateTimeOffset expiresAt)
     {
-        var options = AuthCookiePolicy.BuildRefreshCookieOptions(expiresAt, _env.IsDevelopment());
+        var options = AuthCookiePolicy.BuildRefreshCookieOptions(expiresAt, _env.EnvironmentName == Environments.Development);
         Response.Cookies.Append(AuthCookiePolicy.RefreshCookieName, refreshToken, options);
     }
 
     private void ClearRefreshCookie()
     {
-        var options = AuthCookiePolicy.BuildRefreshCookieOptions(DateTimeOffset.UtcNow.AddDays(-1), _env.IsDevelopment());
+        var options = AuthCookiePolicy.BuildRefreshCookieOptions(DateTimeOffset.UtcNow.AddDays(-1), _env.EnvironmentName == Environments.Development);
         Response.Cookies.Delete(AuthCookiePolicy.RefreshCookieName, options);
     }
 
@@ -329,9 +337,9 @@ public sealed class AuthController : BaseApiController
     private static string BuildResetUrl(string baseUrl, string email, string token)
     {
         // Token contains +/= chars; must be URL encoded.
-        var frontend = baseUrl.TrimEnd('/');
+        var client = baseUrl.TrimEnd('/');
         var e = Uri.EscapeDataString(email);
         var t = Uri.EscapeDataString(token);
-        return $"{frontend}/reset-password?email={e}&token={t}";
+        return $"{client}/reset-password?email={e}&token={t}";
     }
 }

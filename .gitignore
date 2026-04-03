@@ -20,7 +20,7 @@ artifacts/
 TestResults/
 
 # =========================
-# Node / Frontend
+# JavaScript tooling
 # =========================
 node_modules/
 dist/
@@ -28,9 +28,7 @@ build/
 coverage/
 *.tsbuildinfo
 
-# Vite / tooling caches
-.vite/
-.vitest/
+# Tooling caches
 .eslintcache
 .cache/
 .parcel-cache/

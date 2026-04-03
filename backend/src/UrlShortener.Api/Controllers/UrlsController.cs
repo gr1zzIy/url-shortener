@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using UrlShortener.Api.Common.Auth;
 using UrlShortener.Api.Contracts.Common;
 using UrlShortener.Api.Contracts.Analytics;
 using UrlShortener.Api.Contracts.Urls;
@@ -103,10 +102,4 @@ public sealed class UrlsController : BaseApiController
         return Ok(await _analytics.GetRecentClicksAsync(userId, id, take, ct));
     }
 
-    private Guid UserId()
-    {
-        var id = User.FindFirst(AuthClaims.UserId)?.Value;
-        if (id is null) throw new InvalidOperationException("Missing uid claim.");
-        return Guid.Parse(id);
-    }
 }

@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace UrlShortener.Api.Common.Errors;
@@ -10,12 +13,25 @@ public static class IdentityProblemDetails
         HttpContext httpContext,
         string? title = null)
     {
-        // Групуємо помилки по Code, щоб фронту було простіше
-        var errors = result.Errors
-            .GroupBy(e => e.Code)
-            .ToDictionary(
-                g => g.Key,
-                g => g.Select(e => e.Description).ToArray());
+        // Group errors by code to keep API responses compact and predictable.
+        var errors = new Dictionary<string, string[]>();
+        var groupedErrors = new Dictionary<string, List<string>>();
+
+        foreach (var error in result.Errors)
+        {
+            if (!groupedErrors.TryGetValue(error.Code, out var messages))
+            {
+                messages = new List<string>();
+                groupedErrors[error.Code] = messages;
+            }
+
+            messages.Add(error.Description);
+        }
+
+        foreach (var pair in groupedErrors)
+        {
+            errors[pair.Key] = pair.Value.ToArray();
+        }
 
         var pd = new ValidationProblemDetails(errors)
         {

@@ -1,4 +1,7 @@
-﻿namespace UrlShortener.Api.Common.Policies;
+﻿using System;
+using Microsoft.AspNetCore.Http;
+
+namespace UrlShortener.Api.Common.Policies;
 
 public static class AuthCookiePolicy
 {
@@ -9,8 +12,8 @@ public static class AuthCookiePolicy
         return new CookieOptions
         {
             HttpOnly = true,
-            Secure = !isDevelopment, // у проді true обов'язково
-            SameSite = SameSiteMode.None, // для різних доменів SPA <-> API
+            Secure = !isDevelopment,
+            SameSite = SameSiteMode.None,
             Expires = expiresAt.UtcDateTime,
             Path = "/api/auth"
         };

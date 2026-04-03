@@ -1,167 +1,99 @@
-# GlassLink — URL Shortener with Analytics
+# GlassLink Backend - URL Shortener API with Analytics
 
-GlassLink is a project that demonstrates URL shortening service with authentication, analytics, and a glass-morphism UI.
+GlassLink is a backend-only project that provides a URL shortener API with authentication, analytics, and refresh-token based sessions.
 
-The project focuses on **clean architecture**, **patterns**, and
-**end-to-end ownership**: from database schema and backend services to UI/UX and CI.
+The project follows clean architecture and covers the full backend flow: from database schema and EF Core migrations to API endpoints and CI.
 
 ---
 
-## What GlassLink Can Be Used For
+## What This API Provides
 
-- Creating short links for sharing
-- Tracking link usage over time
-- Analyzing user behavior (countries, devices, browsers, OS)
-- Demonstrating authentication flows (login, register, password recovery)
-- Showcasing a full-stack architecture
+- Short URL creation and management
+- Redirect handling and click counting
+- Link analytics (countries, devices, browsers, OS, recent clicks)
+- Authentication flows (register, login, password reset)
+- JWT-protected endpoints
 
 ---
 
 ## Tech Stack
 
-### Backend
 - .NET 9 (ASP.NET Core Web API)
 - Entity Framework Core
 - PostgreSQL
 - ASP.NET Identity + JWT
 - Serilog
 - Docker / Docker Compose
-
-### Frontend
-- React + TypeScript
-- Vite
-- Tailwind CSS
-- shadcn/ui (glass-style components)
-- Framer Motion
-- Recharts
-
-### Dev & Infrastructure
 - GitHub Actions (CI)
-- Dockerized local environment
-- Monorepo structure
 
 ---
 
-## Authentication & User Flow
+## Project Structure
 
-**Implemented flows:**
-- User registration
-- Login / Logout
-- Password recovery
-- JWT-protected routes
-
-### **Screenshots**
-- `docs/screenshots/auth-login.png`
-<img width="1919" height="899" alt="image" src="https://github.com/user-attachments/assets/33167ab3-d98c-488c-a66d-a8b9ea1b72f7" />
-
-- `docs/screenshots/auth-register.png`
-<img width="1919" height="900" alt="image" src="https://github.com/user-attachments/assets/2ea30028-70e5-4d0d-93ac-147de2bfbe3b" />
-
-- `docs/screenshots/auth-forgot-password.png`
-<img width="1919" height="897" alt="image" src="https://github.com/user-attachments/assets/ac7d20e0-41c9-47b3-a300-a5deb371c387" />
+```text
+backend/
+  src/
+	UrlShortener.Api/
+	UrlShortener.Application/
+	UrlShortener.Domain/
+	UrlShortener.Infrastructure/
+```
 
 ---
 
-## URL Management
-
-**Features:**
-- Create short URLs
-- Activate / deactivate links
-- Delete with confirmation
-- Expiration handling
-- Click counters
-
-### **Screenshot**
-- `docs/screenshots/dashboard-links.png`
-<img width="1919" height="897" alt="image" src="https://github.com/user-attachments/assets/4a3028fc-803d-4970-bf1a-65b4b434a81d" />
-
----
-
-## Analytics & Statistics
-
-**Each link includes:**
-- Total clicks
-- Unique visitors
-- Clicks over time (chart)
-- Country / Device / browser / OS breakdown
-- Recent clicks list
-
-### **Screenshots**
-- `docs/screenshots/analytics-overview.png`
-<img width="1919" height="899" alt="image" src="https://github.com/user-attachments/assets/086c8189-d5f0-4c7e-a7f2-6353b06a1d14" />
-
-- `docs/screenshots/analytics-recent-clicks.png`
-<img width="1919" height="904" alt="image" src="https://github.com/user-attachments/assets/0439b109-ae35-4dc4-a698-7ca17ec7d5dd" />
-
----
-
-## UI & UX
-
-- Glass-morphism design
-- Smooth animations
-- Responsive layout
-- Theme presets
-
-### **Screenshots**
-- `docs/screenshots/theme-light.png`
-<img width="1919" height="901" alt="image" src="https://github.com/user-attachments/assets/bde2f3ff-3acc-4b6b-b1db-79b43d0c8755" />
-
-- `docs/screenshots/theme-balanced.png`
-<img width="1919" height="899" alt="image" src="https://github.com/user-attachments/assets/8cdd6535-927f-45de-bef2-b9b4900b0dbc" />
-
-- `docs/screenshots/theme-dark.png`
-<img width="1919" height="902" alt="image" src="https://github.com/user-attachments/assets/8f6ce302-7043-4788-a617-a56835d74420" />
-
----
-
-### **Other screenshots**
-
-**Modals:**
-- `docs/screenshots/deactivate-modal.png`
-<img width="1918" height="880" alt="image" src="https://github.com/user-attachments/assets/657a6656-f810-4517-82b1-110d0b7ad6cf" />
-
-- `docs/screenshots/delete-modal.png`
-<img width="1919" height="890" alt="image" src="https://github.com/user-attachments/assets/61f89fc2-4c95-49fd-b70a-ecd408353818" />
-
-- `docs/screenshots/error-page.png`
-<img width="1919" height="894" alt="image" src="https://github.com/user-attachments/assets/bfbbfd9d-2dee-47dc-b67c-8fcf4da2870a" />
-
-- `docs/screenshots/search.png`
-<img width="1919" height="893" alt="image" src="https://github.com/user-attachments/assets/50aa4646-7133-43ca-9e07-6a2a1ff541f0" />
-
----
-
-## Run Locally (Docker)
+## Run with Docker
 
 ```bash
 docker compose up -d --build
 ```
 
-API:
-- http://localhost:5000/health
-- http://localhost:5000/api
+API endpoints:
+- `http://localhost:5000/health`
+- `http://localhost:5000/api`
+
+Note: in container mode the API applies EF Core migrations automatically on startup.
 
 ---
 
-## Run Frontend
+## Run Backend Locally (without Docker)
 
 ```bash
-cd frontend
-npm ci
-npm run dev
+cd backend
+dotnet restore UrlShortener.sln
+dotnet run --project src/UrlShortener.Api
 ```
 
-Frontend:
-- http://localhost:5173
+Default local connection string is configured in `backend/src/UrlShortener.Api/appsettings.json` and expects PostgreSQL on `localhost:5432`.
+
+---
+
+## Apply Migrations Manually
+
+```bash
+DOTNET_ROOT="$HOME/.dotnet" DOTNET_ROOT_ARM64="$HOME/.dotnet" ~/.dotnet/tools/dotnet-ef database update \
+  --project backend/src/UrlShortener.Infrastructure/UrlShortener.Infrastructure.csproj \
+  --startup-project backend/src/UrlShortener.Api/UrlShortener.Api.csproj \
+  --context AppDbContext
+```
+
+Migrations are located in `backend/src/UrlShortener.Infrastructure/Persistence/Migrations`.
+
+---
+
+## Run Tests
+
+```bash
+dotnet test backend/UrlShortener.sln -c Release
+```
 
 ---
 
 ## Planned Improvements
 
 - OAuth login
-- Public analytics pages
+- Public analytics API endpoints
 - Rate limiting
-- Admin dashboard
+- Admin API surface
 - E2E tests
 
 ---

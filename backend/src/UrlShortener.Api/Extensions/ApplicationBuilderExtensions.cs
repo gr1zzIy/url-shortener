@@ -13,7 +13,7 @@ public static class ApplicationBuilderExtensions
 
         app.UseRouting();
 
-        app.UseCors("spa");
+        app.UseCors("client");
 
         app.UseMiddleware<ExceptionHandlingMiddleware>();
 
