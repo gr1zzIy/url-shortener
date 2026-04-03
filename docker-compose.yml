@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - backend_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -30,7 +30,7 @@ services:
       ConnectionStrings__Default: Host=db;Port=5432;Database=urlshortener;Username=postgres;Password=postgres
       DataProtection__KeyRingPath: /app/keys
     ports:
-      - "5000:8080"
+      - "5001:8080"
     depends_on:
       db:
         condition: service_healthy
