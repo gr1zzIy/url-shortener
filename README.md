@@ -1,30 +1,29 @@
 # GlassLink Backend - URL Shortener API with Analytics
 
-GlassLink is a backend-only project that provides a URL shortener API with authentication, analytics, and refresh-token based sessions.
+GlassLink is a backend-only URL shortener API with authentication, analytics, and refresh-token sessions.
 
-The project follows clean architecture and covers the full backend flow: from database schema and EF Core migrations to API endpoints and CI.
+The project follows clean architecture and covers the full backend flow: domain model, EF Core mappings/migrations, API endpoints, and CI.
 
 ---
 
-## What This API Provides
+## Features
 
-- Short URL creation and management
-- Redirect handling and click counting
-- Link analytics (countries, devices, browsers, OS, recent clicks)
-- Authentication flows (register, login, password reset)
-- JWT-protected endpoints
+- Create, list, deactivate, and soft-delete short links
+- Redirect by short code with click tracking
+- Analytics: totals, unique visitors, breakdowns, recent clicks
+- Auth flows: register, login, refresh, logout, password reset
+- JWT-protected endpoints and ProblemDetails-based error responses
 
 ---
 
 ## Tech Stack
 
 - .NET 9 (ASP.NET Core Web API)
-- Entity Framework Core
-- PostgreSQL
+- Entity Framework Core + PostgreSQL
 - ASP.NET Identity + JWT
 - Serilog
 - Docker / Docker Compose
-- GitHub Actions (CI)
+- GitHub Actions CI
 
 ---
 
@@ -37,33 +36,51 @@ backend/
 	UrlShortener.Application/
 	UrlShortener.Domain/
 	UrlShortener.Infrastructure/
+  tests/
+    UrlShortener.Tests/
 ```
 
 ---
 
 ## Run with Docker
 
+This repository uses a backend-only Compose project name to avoid conflicts with older full-stack stacks.
+
 ```bash
+cd /Users/oleksii/Repos/url-shortener
 docker compose up -d --build
 ```
 
-API endpoints:
-- `http://localhost:5000/health`
-- `http://localhost:5000/api`
+Current Docker mapping:
 
-Note: in container mode the API applies EF Core migrations automatically on startup.
+- API: `http://localhost:5001`
+- DB: `localhost:5433`
+
+Useful endpoints:
+
+- `http://localhost:5001/health`
+- `http://localhost:5001/ready`
+- `http://localhost:5001/info`
+- `http://localhost:5001/version`
+- `http://localhost:5001/swagger/index.html`
+
+Notes:
+
+- In `Development` and `Staging`, `GET /` redirects to Swagger UI.
+- In other environments, `GET /` returns a small JSON status object.
+- In container mode, EF Core migrations are applied automatically on startup.
 
 ---
 
-## Run Backend Locally (without Docker)
+## Run Locally (without Docker)
 
 ```bash
-cd backend
+cd /Users/oleksii/Repos/url-shortener/backend
 dotnet restore UrlShortener.sln
 dotnet run --project src/UrlShortener.Api
 ```
 
-Default local connection string is configured in `backend/src/UrlShortener.Api/appsettings.json` and expects PostgreSQL on `localhost:5432`.
+By default, local `appsettings.json` expects PostgreSQL on `localhost:5432`.
 
 ---
 
@@ -76,7 +93,9 @@ DOTNET_ROOT="$HOME/.dotnet" DOTNET_ROOT_ARM64="$HOME/.dotnet" ~/.dotnet/tools/do
   --context AppDbContext
 ```
 
-Migrations are located in `backend/src/UrlShortener.Infrastructure/Persistence/Migrations`.
+Migrations are in:
+
+- `backend/src/UrlShortener.Infrastructure/Persistence/Migrations`
 
 ---
 
