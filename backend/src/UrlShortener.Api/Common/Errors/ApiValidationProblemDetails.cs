@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +12,7 @@ public static class IdentityProblemDetails
         HttpContext httpContext,
         string? title = null)
     {
-        // Group errors by code to keep API responses compact and predictable.
+        // Групую помилки за кодом, щоб відповідь була короткою та передбачуваною.
         var errors = new Dictionary<string, string[]>();
         var groupedErrors = new Dictionary<string, List<string>>();
 
@@ -33,17 +32,6 @@ public static class IdentityProblemDetails
             errors[pair.Key] = pair.Value.ToArray();
         }
 
-        var pd = new ValidationProblemDetails(errors)
-        {
-            Type = "https://httpstatuses.com/400",
-            Title = title ?? "Validation failed",
-            Status = StatusCodes.Status400BadRequest,
-            Instance = httpContext.Request.Path
-        };
-
-        pd.Extensions["code"] = ApiErrorCodes.ValidationFailed;
-        pd.Extensions["traceId"] = httpContext.TraceIdentifier;
-
-        return pd;
+        return ApiProblemDetailsFactory.CreateValidationProblemDetails(httpContext, errors, title);
     }
 }

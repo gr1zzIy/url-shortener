@@ -4,13 +4,13 @@ namespace UrlShortener.Api.Common.Errors;
 
 public static class IdentityErrorMapper
 {
-    public static (int status, string code, IDictionary<string, string[]> errors) ToProblem(IdentityResult result)
+    public static (int status, string code, string title, IDictionary<string, string[]> errors) ToProblem(IdentityResult result)
     {
-        // групуємо помилки як field -> messages
-        // для Identity немає строгих "field", тому нормалізуємо:
+        // Збираю помилки у форматі field -> messages.
+        // Для Identity немає строгих полів, тому нормалізую так:
         // - DuplicateUserName/DuplicateEmail -> "email"
         // - Password* -> "password"
-        // - інше -> "general"
+        // - усе інше -> "general"
 
         var dict = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
@@ -25,13 +25,13 @@ public static class IdentityErrorMapper
 
         var errors = dict.ToDictionary(k => k.Key, v => v.Value.Distinct().ToArray(), StringComparer.OrdinalIgnoreCase);
 
-        // Конфлікт: email/username зайняті
+        // Якщо вже зайняті email або username, це конфлікт.
         var isConflict = result.Errors.Any(e =>
             e.Code.Contains("Duplicate", StringComparison.OrdinalIgnoreCase));
 
         return isConflict
-            ? (StatusCodes.Status409Conflict, ApiErrorCodes.Conflict, errors)
-            : (StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationFailed, errors);
+            ? (StatusCodes.Status409Conflict, ApiErrorCodes.Conflict, ApiResponseConstants.ConflictTitle, errors)
+            : (StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationFailed, ApiResponseConstants.ValidationFailedTitle, errors);
     }
 
     private static string MapField(string code)

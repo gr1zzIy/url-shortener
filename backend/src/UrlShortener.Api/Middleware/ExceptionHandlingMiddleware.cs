@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using Microsoft.AspNetCore.Mvc;
 using UrlShortener.Api.Common.Errors;
 
 namespace UrlShortener.Api.Middleware;
@@ -34,7 +33,7 @@ public sealed class ExceptionHandlingMiddleware
                 .GetRequiredService<IWebHostEnvironment>()
                 .IsDevelopment()
                 ? ex.Message
-                : "Unexpected error occurred.";
+                : ApiResponseConstants.UnexpectedErrorTitle;
 
             await WriteProblemDetails(
                 context,
@@ -59,19 +58,10 @@ public sealed class ExceptionHandlingMiddleware
         string code,
         string title)
     {
-        context.Response.ContentType = "application/problem+json";
+        context.Response.ContentType = ApiResponseConstants.ProblemJsonMediaType;
         context.Response.StatusCode = (int)status;
 
-        var pd = new ProblemDetails
-        {
-            Status = (int)status,
-            Title = title,
-            Type = $"https://httpstatuses.com/{(int)status}",
-            Instance = context.Request.Path
-        };
-
-        pd.Extensions["code"] = code;
-        pd.Extensions["traceId"] = context.TraceIdentifier;
+        var pd = ApiProblemDetailsFactory.CreateProblemDetails(context, (int)status, code, title);
 
         await context.Response.WriteAsJsonAsync(pd);
     }

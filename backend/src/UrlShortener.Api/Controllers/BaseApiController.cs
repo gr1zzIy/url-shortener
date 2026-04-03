@@ -21,6 +21,4 @@ public abstract class BaseApiController : ControllerBase
 
         return id;
     }
-
-    protected string TraceId => HttpContext.TraceIdentifier;
 }

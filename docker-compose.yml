@@ -1,5 +1,6 @@
 services:
   db:
+    container_name: urlshortener-db
     image: postgres:16
     environment:
       POSTGRES_DB: urlshortener
@@ -16,10 +17,13 @@ services:
       retries: 20
 
   api:
+    container_name: urlshortener-api
     build:
       context: backend
       dockerfile: Dockerfile
+    restart: unless-stopped
     environment:
+      DOTNET_RUNNING_IN_CONTAINER: "true"
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Host=db;Port=5432;Database=urlshortener;Username=postgres;Password=postgres
       DataProtection__KeyRingPath: /app/keys

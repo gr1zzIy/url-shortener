@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -67,31 +65,11 @@ public sealed class AuthController : BaseApiController
         var result = await _userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
         {
-            var hasDuplicate = result.Errors.Any(e =>
-                e.Code is "DuplicateUserName" or "DuplicateEmail");
+            var (status, code, title, errors) = IdentityErrorMapper.ToProblem(result);
+            var pd = ApiProblemDetailsFactory.CreateValidationProblemDetails(HttpContext, errors, title, status);
+            pd.Extensions["code"] = code;
 
-            if (hasDuplicate)
-            {
-                var pd = new ProblemDetails
-                {
-                    Type = "https://httpstatuses.com/409",
-                    Title = "Conflict",
-                    Status = StatusCodes.Status409Conflict,
-                    Instance = HttpContext.Request.Path
-                };
-
-                pd.Extensions["code"] = ApiErrorCodes.Conflict;
-                pd.Extensions["traceId"] = HttpContext.TraceIdentifier;
-
-                // Return grouped validation details for easier client-side handling.
-                pd.Extensions["errors"] = result.Errors
-                    .GroupBy(e => e.Code)
-                    .ToDictionary(g => g.Key, g => g.Select(x => x.Description).ToArray());
-
-                return Conflict(pd);
-            }
-
-            return BadRequest(IdentityProblemDetails.ToValidationProblem(result, HttpContext));
+            return StatusCode(status, pd);
         }
 
         await IssueRefreshTokenAsync(user, ct);
@@ -131,14 +109,13 @@ public sealed class AuthController : BaseApiController
 
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-        // Return the reset link in Development to simplify testing.
         var clientBaseUrl = _config["Client:BaseUrl"] ?? "http://localhost:5000";
         var url = BuildResetUrl(clientBaseUrl, request.Email, token);
 
         if (_env.EnvironmentName == Environments.Development)
             return Ok(new { message = "Reset link generated.", resetUrl = url });
 
-        // TODO: send email in production.
+        // У продакшені тут відправимо листа.
         return Ok(new { message = "If the email exists, a reset link will be sent." });
     }
 
@@ -151,9 +128,15 @@ public sealed class AuthController : BaseApiController
 
         var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
         if (!result.Succeeded)
-            return BadRequest(IdentityProblemDetails.ToValidationProblem(result, HttpContext));
+        {
+            var (status, code, title, errors) = IdentityErrorMapper.ToProblem(result);
+            var pd = ApiProblemDetailsFactory.CreateValidationProblemDetails(HttpContext, errors, title, status);
+            pd.Extensions["code"] = code;
 
-        // Invalidate refresh tokens for safety.
+            return StatusCode(status, pd);
+        }
+
+        // Обнуляємо активні refresh-токени, щоб після reset не лишався старий доступ.
         await _db.RefreshTokens
             .Where(x => x.UserId == user.Id && x.RevokedAt == null && x.ExpiresAt > DateTimeOffset.UtcNow)
             .ExecuteUpdateAsync(setters => setters
@@ -180,7 +163,7 @@ public sealed class AuthController : BaseApiController
         if (existing is null || !existing.IsActive)
             return UnauthorizedRefresh("Invalid refresh token.");
 
-        // Rotate
+        // Ротуємо refresh token.
         existing.RevokedAt = DateTimeOffset.UtcNow;
         existing.RevokedByIp = GetIp();
 
@@ -242,38 +225,18 @@ public sealed class AuthController : BaseApiController
         return Ok(new { user.Id, user.Email });
     }
 
-    // Helpers
+    // Допоміжні методи
 
     private ActionResult UnauthorizedInvalidCredentials()
     {
-        return Unauthorized(new ProblemDetails
-        {
-            Type = "https://httpstatuses.com/401",
-            Title = "Invalid email or password",
-            Status = StatusCodes.Status401Unauthorized,
-            Instance = HttpContext.Request.Path,
-            Extensions =
-            {
-                ["code"] = ApiErrorCodes.InvalidCredentials,
-                ["traceId"] = HttpContext.TraceIdentifier
-            }
-        });
+        return Unauthorized(ApiProblemDetailsFactory.CreateUnauthorizedProblemDetails(
+            HttpContext,
+            ApiResponseConstants.InvalidCredentialsTitle));
     }
 
     private ActionResult UnauthorizedRefresh(string title)
     {
-        return Unauthorized(new ProblemDetails
-        {
-            Type = "https://httpstatuses.com/401",
-            Title = title,
-            Status = StatusCodes.Status401Unauthorized,
-            Instance = HttpContext.Request.Path,
-            Extensions =
-            {
-                ["code"] = ApiErrorCodes.InvalidCredentials,
-                ["traceId"] = HttpContext.TraceIdentifier
-            }
-        });
+        return Unauthorized(ApiProblemDetailsFactory.CreateUnauthorizedProblemDetails(HttpContext, title));
     }
 
     private string? GetIp() => HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -312,7 +275,6 @@ public sealed class AuthController : BaseApiController
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
-            // Extremely unlikely, but if hash collides - try again once
             _db.ChangeTracker.Clear();
             token = _refresh.GenerateToken();
             hash = _refresh.HashToken(token);
@@ -336,7 +298,7 @@ public sealed class AuthController : BaseApiController
 
     private static string BuildResetUrl(string baseUrl, string email, string token)
     {
-        // Token contains +/= chars; must be URL encoded.
+        // Токен може містити символи +/=, тому його треба кодувати.
         var client = baseUrl.TrimEnd('/');
         var e = Uri.EscapeDataString(email);
         var t = Uri.EscapeDataString(token);

@@ -21,10 +21,22 @@ if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
     builder.Configuration.AddJsonFile("appsettings.Container.json", optional: true);
 }
 
-// Налаштування DataProtection для контейнера
+var configuredKeyRingPath = builder.Configuration["DataProtection:KeyRingPath"];
+var defaultKeyRingPath = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true"
+    ? "/app/keys"
+    : Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "UrlShortener",
+        "keys");
+
+var keyRingPath = string.IsNullOrWhiteSpace(configuredKeyRingPath)
+    ? defaultKeyRingPath
+    : configuredKeyRingPath;
+
+Directory.CreateDirectory(keyRingPath);
+
 builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(
-        builder.Configuration["DataProtection:KeyRingPath"] ?? "/app/keys"));
+    .PersistKeysToFileSystem(new DirectoryInfo(keyRingPath));
 
 #endregion
 
@@ -146,6 +158,7 @@ app.UseForwardedHeaders();
 app.UseSerilogRequestLogging();
 app.UseApiPipeline(app.Environment);
 
+app.MapGet("/", () => Results.Ok(new { service = "UrlShortener API", status = "ok", health = "/health" }));
 app.MapHealthChecks("/health");
 app.MapControllers();
 

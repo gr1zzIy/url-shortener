@@ -1,6 +1,6 @@
 ﻿namespace UrlShortener.Api.Common.Errors;
 
-public class ApiErrorCodes
+public static class ApiErrorCodes
 {
     public const string ValidationFailed = "validation_failed";
     public const string NotFound = "not_found";

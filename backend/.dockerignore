@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+**/.idea/
+**/.vs/
+*.user
+*.suo
+Dockerfile
+README.md
+
